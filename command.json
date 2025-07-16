@@ -1,0 +1,157 @@
+{
+  "name": "FMRIPrep-jubail",
+  "description": "Runs the FMRIPrep on a session",
+  "version": "1.1",
+  "schema-version": "1.0",
+  "image": "fmriprep-jubail:latest",
+  "type": "docker",
+  "command-line": "python -u fmriprep.py #ANAT-ONLY# #SESSION_LABEL# #FLAGS# #PROJECT_ID#",
+  "override-entrypoint": true,
+  "mounts": [
+    {
+      "name": "in",
+      "writable": false,
+      "path": "/input"
+    },
+    {
+      "name": "freesurfer",
+      "writable": true,
+      "path": "/freesurfer"
+    },
+    {
+      "name": "fmriprep",
+      "writable": true,
+      "path": "/fmriprep"
+    }
+  ],
+  "environment-variables": {},
+  "ports": {},
+  "inputs": [
+    {
+      "name": "anat-only",
+      "label": "Anat only",
+      "description": "Run the fMRIprep anatomical preprocessing pipeline only, which includes recon-all",
+      "type": "boolean",
+      "required": false,
+      "replacement-key": "#ANAT-ONLY#",
+      "command-line-flag": "--anat-only",
+      "select-values": []
+    },
+    {
+      "name": "session_label",
+      "label": "Session Label",
+      "description": "The label of the session, typically used to provide a human-readable identifier for the session within the project.",
+      "type": "string",
+      "required": true,
+      "replacement-key": "#SESSION_LABEL#",
+      "command-line-flag": "--session-label",
+      "select-values": []
+    },
+    {
+      "name": "other_flags",
+      "label": "FMRIPrep Flags",
+      "description": "Additional flags for customizing FMRIPrep execution. Use these flags to specify options or parameters that alter the behavior of FMRIPrep, such as specifying output directories, adjusting processing workflows, or enabling/disabling specific features. Avoid including flags that are already managed by the system, such as '--skip_bids_validation', '--fs-license-file', and '--anat-only'. Ensure the flags are formatted correctly according to FMRIPrep's command-line options, and always enclose the flags in quotation marks (\" \") to prevent errors in parsing.",
+      "type": "string",
+      "required": false,
+      "replacement-key": "#FLAGS#",
+      "command-line-flag": "--flags",
+      "select-values": []
+    },
+    {
+      "name": "project_id",
+      "label": "Project ID",
+      "description": "The unique XNAT ID of the project. This ID is required to identify the project within the XNAT system.",
+      "type": "string",
+      "required": true,
+      "replacement-key": "#PROJECT_ID#",
+      "command-line-flag": "--project",
+      "select-values": []
+    }
+  ],
+  "outputs": [
+    {
+      "name": "freesurfer",
+      "description": "freesurfer output files",
+      "required": true,
+      "mount": "freesurfer"
+    },
+    {
+      "name": "fmriprep",
+      "description": "fmriprep output files",
+      "required": true,
+      "mount": "fmriprep"
+    }
+  ],
+  "xnat": [
+    {
+      "name": "bids-fmriprep-session-jubail",
+      "description": "FMRIPrep",
+      "contexts": [
+        "xnat:imageSessionData"
+      ],
+      "external-inputs": [
+        {
+          "name": "session",
+          "description": "Input session",
+          "type": "Session",
+          "required": true,
+          "provides-files-for-command-mount": "in",
+          "via-setup-command": "nyu/xnat2bids-pre:latest:xnat2bids",
+          "load-children": false
+        }
+      ],
+      "derived-inputs": [
+        {
+          "name": "session-label",
+          "label": "Session Label",
+          "description": "The label of the session, providing a human-readable identifier, derived from the XNAT session object. This label is required for command input.",
+          "type": "string",
+          "required": true,
+          "provides-value-for-command-input": "session_label",
+          "user-settable": false,
+          "load-children": true,
+          "derived-from-wrapper-input": "session",
+          "derived-from-xnat-object-property": "label",
+          "multiple": false
+        },
+        {
+          "name": "project-id",
+          "label": "Project ID",
+          "description": "The unique identifier of the project associated with the session, derived from the XNAT session object. This ID is required for command input to specify the project within XNAT.",
+          "type": "string",
+          "required": true,
+          "provides-value-for-command-input": "project_id",
+          "user-settable": false,
+          "load-children": true,
+          "derived-from-wrapper-input": "session",
+          "derived-from-xnat-object-property": "project-id",
+          "multiple": false
+        }
+      ],
+      "output-handlers": [
+        {
+          "name": "freesurfer-resource",
+          "accepts-command-output": "freesurfer",
+          "as-a-child-of": "session",
+          "type": "Resource",
+          "label": "freesurfer",
+          "tags": []
+        },
+        {
+          "name": "fmriprep-resource",
+          "accepts-command-output": "fmriprep",
+          "as-a-child-of": "session",
+          "type": "Resource",
+          "label": "fmriprep",
+          "tags": []
+        }
+      ]
+    }
+  ],
+  "reserve-memory": 5120,
+  "limit-memory": 5120,
+  "container-labels": {},
+  "generic-resources": {},
+  "ulimits": {},
+  "secrets": []
+}
